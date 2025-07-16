@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔐 Smart Door Dashboard</title>
+   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #6C63FF;
+      --secondary: #FF6584;
+      --success: #4CC9F0;
+      --danger: #F72585;
+      --dark: #2B2D42;
+      --light: #F8F9FA;
+      --gray: #ADB5BD;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #F5F7FF url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') no-repeat center center fixed;
+      background-size: cover;
+      color: var(--dark);
+      min-height: 100vh;
+      position: relative;
+    }
+    
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(245, 247, 255, 0.85);
+      z-index: -1;
+    }
+    
+    header {
+      background: white;
+      padding: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    header h1 {
+      color: var(--primary);
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+    
+    nav a {
+      color: var(--dark);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    nav a:hover {
+      background: rgba(108, 99, 255, 0.1);
+      color: var(--primary);
+    }
+    
+    nav a.active {
+      background: rgba(108, 99, 255, 0.1);
+      color: var(--primary);
+    }
+    
+    section {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: none;
+    }
+    
+    section.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Home Section Styles */
+    .hero {
+      text-align: center;
+      padding: 4rem 0;
+    }
+    
+    .hero h2 {
+      font-size: 3rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .hero .slogan {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 1.5rem;
+      background: rgba(255,255,255,0.7);
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .hero p {
+      color: var(--dark);
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto 2rem;
+      background: rgba(255,255,255,0.7);
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .dashboard-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+      background: rgba(255,255,255,0.8);
+    }
+    
+    .dashboard-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+    
+    .card-header i {
+      font-size: 1.5rem;
+      margin-right: 0.75rem;
+    }
+    
+    .card-image {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1.5rem;
+      margin: 3rem 0;
+    }
+    
+    .stat-item {
+      background: rgba(255,255,255,0.8);
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+    
+    .stat-item:hover {
+      transform: translateY(-3px);
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      color: var(--dark);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    /* About Section Styles */
+    .about-content {
+      background: rgba(255,255,255,0.8);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .about-content h2 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    
+    .team-member {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .team-member img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 1rem;
+      border: 3px solid var(--primary);
+    }
+    
+    /* Contact Section Styles */
+    .contact-form {
+      background: rgba(255,255,255,0.8);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--dark);
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .form-group textarea {
+      min-height: 150px;
+    }
+    
+    .submit-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .submit-btn:hover {
+      background: var(--secondary);
+    }
+    
+    /* Control Section Styles */
+    .control-section {
+      background: rgba(255,255,255,0.8);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin: 2rem auto;
+      text-align: center;
+      backdrop-filter: blur(5px);
+    }
+    
+    .control-section h2 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    
+    .control-button {
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.5rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
+    .control-button.open {
+      background: var(--success);
+      color: white;
+    }
+    
+    .control-button.close {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .control-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    }
+    
+    /* Logs Section Styles */
+    .log-container {
+      background: rgba(255,255,255,0.8);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      backdrop-filter: blur(5px);
+    }
+    
+    .log-container h2 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    #logList, #intruderList {
+      list-style: none;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    #logList li, #intruderList li {
+      padding: 1rem;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(255,255,255,0.5);
+    }
+    
+    #logList li:last-child, #intruderList li:last-child {
+      border-bottom: none;
+    }
+    
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--dark);
+      margin-top: 2rem;
+      background: rgba(255,255,255,0.8);
+    }
+    
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .social-links a {
+      color: var(--primary);
+      font-size: 1.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .social-links a:hover {
+      color: var(--secondary);
+      transform: translateY(-3px);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      nav {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .hero h2 {
+        font-size: 2rem;
+      }
+      
+      .hero .slogan {
+        font-size: 1.2rem;
+      }
+      
+      .control-button {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fas fa-door-closed"></i> Smart Door</h1>
+    <nav>
+      <a onclick="showSection('home')" class="active"><i class="fas fa-home"></i> Home</a>
+      <a onclick="showSection('control')"><i class="fas fa-sliders-h"></i> Control</a>
+      <a onclick="showSection('logs')"><i class="fas fa-clipboard-list"></i> Logs</a>
+      <a onclick="showSection('intruders')"><i class="fas fa-shield-alt"></i> Intruders</a>
+      <a onclick="showSection('about')"><i class="fas fa-info-circle"></i> About</a>
+      <a onclick="showSection('contact')"><i class="fas fa-envelope"></i> Contact</a>
+    </nav>
+  </header>
+  
+  <!-- Enhanced Home Section -->
+  <section id="home" class="active">
+    <div class="hero">
+      <h2>Smart Door Security System</h2>
+      <div class="slogan">"Secure Your Space with Smart Technology"</div>
+      <p>
+        The most advanced smart door security system that combines cutting-edge technology with intuitive controls. 
+        Monitor, control, and protect your space from anywhere in the world.
+      </p>
+      
+      <div class="stats-container">
+        <div class="stat-item">
+          <div class="stat-value">24/7</div>
+          <div class="stat-label">Protection</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">99.9%</div>
+          <div class="stat-label">Reliability</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">100+</div>
+          <div class="stat-label">Happy Users</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">5★</div>
+          <div class="stat-label">Rated</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="dashboard-grid">
+      <div class="dashboard-card">
+        <div class="card-header">
+          <i class="fas fa-mobile-alt"></i>
+          <h3>Remote Control</h3>
+        </div>
+        <img src="https://images.unsplash.com/photo-1598128558393-70ff21433be0?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" class="card-image" alt="Mobile control">
+        <p>Control your door from anywhere using our intuitive mobile app or web interface with real-time status updates.</p>
+      </div>
+      
+      <div class="dashboard-card">
+        <div class="card-header">
+          <i class="fas fa-bell"></i>
+          <h3>Instant Alerts</h3>
+        </div>
+        <img src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" class="card-image" alt="Notifications">
+        <p>Receive immediate notifications for all access attempts, with photos and timestamps for complete awareness.</p>
+      </div>
+      
+      <div class="dashboard-card">
+        <div class="card-header">
+          <i class="fas fa-history"></i>
+          <h3>Access History</h3>
+        </div>
+        <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" class="card-image" alt="Activity logs">
+        <p>Comprehensive logs of all door activities with searchable records and export capabilities.</p>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Control Section -->
+  <section id="control">
+    <div class="control-section">
+      <h2><i class="fas fa-door-open"></i> Door Control</h2>
+      <button class="control-button open" onclick="openDoor()">
+        <i class="fas fa-door-open"></i> Open Door
+      </button>
+      <button class="control-button close" onclick="closeDoor()">
+        <i class="fas fa-door-closed"></i> Close Door
+      </button>
+    </div>
+  </section>
+  
+  <!-- Logs Section -->
+  <section id="logs">
+    <div class="log-container">
+      <h2><i class="fas fa-clipboard-list"></i> Login Logs</h2>
+      <ul id="logList"></ul>
+    </div>
+  </section>
+  
+  <!-- Intruders Section -->
+  <section id="intruders">
+    <div class="log-container">
+      <h2><i class="fas fa-shield-alt"></i> Intruder Alerts</h2>
+      <p style="margin: 0.5rem 0 1rem; text-align: center;">
+  🔗 <a href="http://172.20.10.13/custom" target="_blank" style="color:#007BFF; font-weight:bold; text-decoration: underline;">
+    View Live ESP32-CAM Stream
+  </a>
+</p>
+
+<h3>Live Intruder Camera Feed</h3>
+
+
+
+  <!-- Timestamp -->
+  <p id="liveTime" style="color:#444; margin-top:10px; font-weight:600;"></p>
+</div>
+
+
+<ul id="intruderList" style="max-height:300px; overflow-y:auto; background:#222; padding:10px; border-radius:5px;"></ul>
+
+
+    </div>
+  </section>
+  
+  <!-- New About Section -->
+  <section id="about">
+    <div class="about-content">
+      <h2><i class="fas fa-info-circle"></i> About Our System</h2>
+      <p>The Smart Door Security System was developed with one goal in mind - to provide affordable, reliable, and easy-to-use security for homes and businesses. Our system combines state-of-the-art hardware with intuitive software to give you complete control over your door security.</p>
+      
+      <h3 style="margin-top: 2rem; color: var(--primary);">Key Features:</h3>
+      <ul style="margin: 1rem 0 2rem 1.5rem;">
+        <li style="margin-bottom: 0.5rem;">Remote door control from anywhere</li>
+        <li style="margin-bottom: 0.5rem;">Real-time access notifications</li>
+        <li style="margin-bottom: 0.5rem;">Comprehensive activity logs</li>
+        <li style="margin-bottom: 0.5rem;">Intruder detection with photo capture</li>
+        <li style="margin-bottom: 0.5rem;">Multi-user access management</li>
+      </ul>
+      
+      <h3 style="margin-top: 2rem; color: var(--primary);">Our Team</h3>
+      <div class="team-grid">
+        <div class="team-member">
+          <img src="https://i.postimg.cc/SK4kdbW2/boo.jpg" alt="Team Member">
+          <h4>Prashant Joshi</h4>
+          <p>Lead Developer</p>
+        </div>
+        <div class="team-member">
+          <img src="https://i.postimg.cc/fyVNyzhF/kushal.jpg" alt="Team Member">
+          <h4>Kushal Sapkota</h4>
+          <p>Hardware Engineer</p>
+        </div>
+      
+      </div>
+    </div>
+  </section>
+  
+  <!-- New Contact Section -->
+  <section id="contact">
+    <div class="contact-form">
+      <h2><i class="fas fa-envelope"></i> Contact Us</h2>
+      <form>
+        <div class="form-group">
+          <label for="name">Your Name</label>
+          <input type="text" id="name" placeholder="Enter your name">
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" placeholder="Subject of your message">
+        </div>
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" placeholder="Your message here..."></textarea>
+        </div>
+        <button type="submit" class="submit-btn">Send Message</button>
+      </form>
+    </div>
+  </section>
+  
+  <footer>
+    &copy; 2025 Smart Door System. All rights reserved.
+    <div class="social-links">
+      <a href="#"><i class="fab fa-facebook"></i></a>
+      <a href="#"><i class="fab fa-twitter"></i></a>
+      <a href="#"><i class="fab fa-instagram"></i></a>
+      <a href="#"><i class="fab fa-linkedin"></i></a>
+    </div>
+  </footer>
+
+  
+  <script>
+   // Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyC_SVU9ICYz5UQ0I4MoDKDFfu8bbMIWct0",
+  authDomain: "smart-door-3e8cc.firebaseapp.com",
+  databaseURL: "https://smart-door-3e8cc-default-rtdb.firebaseio.com",
+  projectId: "smart-door-3e8cc",
+  storageBucket: "smart-door-3e8cc.appspot.com",
+  messagingSenderId: "306404588739",
+  appId: "1:306404588739:web:94170ac04fa8560e4b3676"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+
+     function showSection(id, event) {
+      document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+      if (event) event.currentTarget.classList.add("active");
+    }
+
+    function openDoor() {
+      db.ref("commands").set({ state: "open" });
+      alert("🚪 Open command sent to door!");
+    }
+
+    function closeDoor() {
+      db.ref("commands").set({ state: "close" });
+      alert("🔒 Close command sent to door!");
+    }
+
+    function fetchFirebaseLogs() {
+      db.ref("logs").on("value", snapshot => {
+        const logs = snapshot.val();
+        let logListHTML = "";
+        let intruderHTML = "";
+
+        for (let key in logs) {
+        const log = logs[key].log;
+        const timestamp = logs[key].timestamp || Date.now();
+
+        const torontoTime = new Date(timestamp).toLocaleString("en-CA", {
+          timeZone: "America/Toronto",
+          year: 'numeric', month: 'short', day: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+
+const itemHTML = `<li>${log}<br><small>${torontoTime}</small></li>`;
+        logListHTML += itemHTML;
+if (log.includes("Denied")) {
+  intruderHTML += itemHTML;
+
+  // Update image and timestamp from the latest denial log
+const camIP = "http://172.20.10.13/custom";  // <-- Replace with your ESP32-CAM IP
+document.getElementById('intruderImg').src = `${camIP}/intruder.jpg?t=${new Date().getTime()}`;
+  document.getElementById('intruderTimestamp').innerText = "📸 Captured at: " + torontoTime;
+}
+      }
+
+        document.getElementById("logList").innerHTML = logListHTML;
+        document.getElementById("intruderList").innerHTML = intruderHTML;
+      });
+    }
+
+    document.querySelector('form')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Thank you for your message! We will contact you soon.');
+      this.reset();
+    });
+
+    window.onload = fetchFirebaseLogs;
+    function updateTime() {
+  const now = new Date();
+  const timeString = now.toLocaleString("en-CA", {
+    timeZone: "America/Toronto",
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  document.getElementById("liveTime").innerText = "🕒 Live Feed as of: " + timeString;
+}
+
+setInterval(updateTime, 1000);
+updateTime(); // Initial call
+
+  </script>
+
+</body>
+</html>
+
